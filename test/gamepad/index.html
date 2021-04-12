@@ -1,0 +1,26 @@
+
+
+<!DOCTYPE html>
+<!-- code from https://codepen.io/tswone/pen/GRgaQoq -->
+<html lang=en>
+<title>Examples of using the ondrag Global Event Attribute</title>
+<meta content="width=device-width">
+<link rel="stylesheet" type="text/css" class="INLINE_PEN_STYLESHEET_ID" href="./styles.css"></link>
+</head>
+<body>
+    <div class="imgedit white">
+        <div class="title">Scale and Move</div>
+            <nav class="d-pad">
+                <a class="up" href="#" onmouseover="upMouseHover()" onmouseout="upMouseOut()"></a>
+                <a class="right" href="#" onmouseover="rightMouseHover()" onmouseout="rightMouseOut()"></a>
+                <a class="down" href="#" onmouseover="downMouseHover()" onmouseout="downMouseOut()"></a>
+                <a class="left" href="#" onmouseover="leftMouseHover()" onmouseout="leftMouseOut()"></a>  
+            </nav>
+            <nav class="v-btns">
+                <a href="#">&plus;</a>
+                <a href="#">&minus;</a>
+            </nav>
+    </div>
+    <script src="pad.js"></script>
+</body>
+</html>

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Tello GUI</title>
+	<style type="text/css">
+		html, body {
+			background-color: rgb(240, 255, 254);
+			text-align: left;
+		}
+	</style>
+	<link rel="stylesheet" type="text/css" class="INLINE_PEN_STYLESHEET_ID" href="./CSS/gamepadstyles.css"></link>
+</head>
+<body>
+
+	<div class="video">
+		<video id="video_raw"autoplay muted playsinline></video>
+		<canvas id="canvas_lab"></canvas>
+	</div>
+	<div class="select">
+		<label for="audioSource">Audio source: </label><select id="audioSource"></select>
+		<label for="videoSource">Video source: </label><select id="videoSource"></select>
+	</div>
+	<div class="tello">
+		<p id="tello_state"><br></p>
+		<!-- <div class="set setbg white">
+			<nav class="o-pad">
+				<a class="up" href="#" onmousedown="upMousePressDown()" onmouseup="upMouseRelease()" ></a>
+				<a class="right" href="#" onmousedown="rightMousePressDown()" onmouseup="rightMouseRelease()"></a>
+				<a class="down" href="#" onmousedown="downMousePressDown()" onmouseup="downMouseRelease()"></a>
+				<a class="left" href="#" onmousedown="leftMousePressDown()" onmouseup="leftMouseRelease()"></a>  
+			</nav>
+		</div> -->
+		<div class="imgedit white">
+			<div class="title">Move  +  Fly  +  Rotate</div>
+				<nav class="d-pad">
+					<a class="up" href="#" onmousedown="upMousePressDown()" onmouseup="upMouseRelease()" ></a>
+					<a class="right" href="#" onmousedown="rightMousePressDown()" onmouseup="rightMouseRelease()"></a>
+					<a class="down" href="#" onmousedown="downMousePressDown()" onmouseup="downMouseRelease()"></a>
+					<a class="left" href="#" onmousedown="leftMousePressDown()" onmouseup="leftMouseRelease()"></a>   
+				</nav>
+				<nav class="v-btns">
+					<a href="#" onmousedown="plusMousePressDown()" onmouseup="plusMouseRelease()" >&plus;</a>
+					<a href="#" onmousedown="minusMousePressDown()" onmouseup="minusMouseRelease()" >&minus;</a>
+				</nav>
+				<nav class="v-btns">
+					<a href="#" onmousedown="crotMousePressDown()" onmouseup="crotMouseRelease()" >&#8634;</a>
+					<a href="#" onmousedown="acrotMousePressDown()" onmouseup="acrotMouseRelease()" >&#8635;</a>
+				</nav>
+		</div>
+
+		<label for="speedSlider">Speed</label>
+		<input type="range" id="speedSlider" name="speed" min="10" max="100" value="50" step="1" oninput="displaySpeedValue()" onmouseup="adjustSpeed()">
+		<label id="speedDisplay" for="speedSlider">50</label>
+		<p></p>
+		<!-- Proactive_JBB_Guest 74298342 -->
+		<input placeholder="Enter command to send" name="name" id="tello_command_box"/>
+		<button onclick="tellosend()">Send</button>
+		<button onclick="telloconnect()">Connect</button>
+		<p></p>
+		<button onclick="streamon()">Streamon</button>
+		<button onclick="emergency()">Emergency</button>
+		<button onclick="takeoff()">Take off</button>
+		<button onclick="land()">Land</button>
+		<button onclick="printTelloState()">State</button>
+		<p></p>
+		<button onclick="followFaceJourney()">Lazy Button</button>
+		<button onclick="startFollowFace()">Start Follow</button>
+		<button onclick="stopFollowFace()">Stop Follow</button>
+
+		<p id="log_debug"><br></p>
+	</div>
+	<p></p>
+	<div id="chartContainer" style="height: 280px; max-width: 920px; margin: 0px auto;"></div>  
+	<button id="addDataPoint">Add Data Point</button>  
+	<button id="updateDataPoint">Update Data Point</button>  
+	<script type="text/javascript" src="./lib/canvasjs.min.js"></script> 
+	<script type="text/javascript" src="./lib/ml5.min.js"></script>
+	<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+	<script type="text/javascript" src="./padEffect.js"></script>  
+	<script type="text/javascript" src="./chooseCamera.js"></script>
+	<script type="text/javascript" src="./telloFront.js"></script>
+
+	<script>
+
+		// To display camera stream, apply ml5 model, display model labels on canvas======================================
+		const video = document.getElementById("video_raw")
+		const canvas = document.getElementById("canvas_lab")
+		const ctx = canvas.getContext("2d");
+		
+		video.height = 360;
+		video.width = 480;
+		// video.height = 480;
+		// video.width = 640;
+		canvas.height = video.height;
+		canvas.width = video.width;
+
+		let faces = [];
+		let poses = [];
+
+		video.addEventListener('loadeddata', (event) => {
+			feedML5Model();
+		});
+
+		updateCanvas();
+
+		function feedML5Model() {
+			const facemesh = ml5.facemesh(video, function() {
+				console.log("Model loaded!")
+			});
+
+			facemesh.on('predict', facefaces => {
+				// if (facefaces.length < faces.length) {
+				//   faces.splice(facefaces.length);
+				// }
+				// facefaces.forEach((face, index) => {
+				//   faces[index] = {keypoints: face.scaledMesh};
+				// });
+				faces = facefaces;
+			});
+
+			// // posenet
+			
+			// let poseNet = ml5.poseNet(video, ()=>{
+			// 	console.log('Model Loaded!');
+			// });
+
+			// poseNet.on('pose', (posepose)=>{
+			// 	if (posepose.length > 0) {
+			// 		poses = posepose;
+
+			// 	}
+			// });
+		}
+
+		function updateCanvas () {
+			if (video && (!video.paused || !video.ended || video.autoplay)) {
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+				// //draw poses
+				// drawPoseKeypoints(poses);
+				// //draw skeleton
+				// drawSkeleton(poses);
+				// draw faces
+				drawFaceKeypoints(faces);
+				setTimeout(updateCanvas, 1000 / 30);
+			}
+		}
+
+		// A function to draw the skeletons
+		function drawSkeleton(poses) {
+			// Loop through all the skeletons detected
+			for (let i = 0; i < poses.length; i++) {
+				let skeleton = poses[i].skeleton;
+				// For every skeleton, loop through all body connections
+				for (let j = 0; j < skeleton.length; j++) {
+					let partA = skeleton[j][0];
+					let partB = skeleton[j][1];
+					ctx.strokeStyle = "#FF0000";
+					ctx.beginPath();
+					ctx.moveTo(partA.position.x, partA.position.y);
+					ctx.lineTo(partB.position.x, partB.position.y);
+					ctx.stroke();
+					// stroke(255);
+					// strokeWeight(1);
+					// line(partA.position.x, partA.position.y, partB.position.x, partB.position.y);
+				}
+			}
+		}
+
+        // A function to draw points and labels over the detected keypoints
+        function drawFaceKeypoints(predictions) {
+			for (let i = 0; i < predictions.length; i += 1) {
+				const keypoints = predictions[i].scaledMesh;
+
+				// Draw facial keypoints.
+				for (let j = 0; j < keypoints.length; j += 1) {
+					const [x, y] = keypoints[j];
+					// console.log("drawing points");
+					// console.log(x);
+					// console.log(y);
+					ctx.beginPath();
+					ctx.ellipse(x, y, 1, 1, 0, 0, 2 * Math.PI);
+					ctx.fillStyle = `rgb(
+										${Math.floor(255*(j/468))},
+										${Math.floor(255*(1-j/468))},
+										200)`;
+					
+					ctx.fill();
+					// ctx.font = "10px Comic Sans MS";
+					// ctx.fillStyle = "green";
+					// ctx.textAlign = "center";
+					// ctx.fillText(`${j}`, x, y);
+				};
+			};
+        }
+
+        // A function to draw points and labels over the detected keypoints
+        function drawPoseKeypoints(poses) {
+				// draw poses
+				for (let i=0;i<poses.length;i+=1) {
+					const keypoints = poses[i].pose.keypoints;
+					// Draw pose keypoints.
+					for (let j = 0; j < keypoints.length; j += 1) {
+						const [x, y] = [keypoints[j].position.x, keypoints[j].position.y];
+						// console.log("drawing points");
+						// console.log(x);
+						// console.log(y);
+						ctx.beginPath();
+						ctx.ellipse(x, y, 3, 3, 0, 0, 2 * Math.PI);
+						ctx.fillStyle = `rgb(120, 255, 120)`;
+						ctx.fill();
+					}
+				}
+        }
+
+		async function printTelloState() {
+			let statestate = document.getElementById("tello_state");
+			setInterval(() => {
+				telloState().then(response => {
+					statestate.innerHTML = `State: ${response} <br>`;
+					});
+        	}, 100);
+		}
+
+
+		// functions for communicating tello=================================================
+		function streamon() {
+			send("streamon");
+		}
+
+		function tellosend() {
+			const input = document.getElementById('tello_command_box');
+			send(input.value);
+			input.value = "";
+		}
+
+		function displaySpeedValue() {
+			const speedSlider = document.getElementById("speedSlider");
+			const speedDisplay = document.getElementById("speedDisplay");
+			speedDisplay.innerHTML = `${speedSlider.value}`;
+			
+		}
+
+		function adjustSpeed() {
+			const speedSlider = document.getElementById("speedSlider");
+			send(`speed ${speedSlider.value}`);
+		}
+
+		// functions for game d-pad control=========================================
+		function upMousePressDown() {
+			rc(0, 100, 0, 0);
+		}
+		function rightMousePressDown() {
+			rc(100, 0, 0, 0);
+		}
+		function downMousePressDown() {
+			rc(0, -100, 0, 0);
+		}
+		function leftMousePressDown() {
+			rc(-100, 0, 0, 0);
+		}
+		function upMouseRelease() {
+			rc(0, 0, 0, 0);
+		}
+		function rightMouseRelease() {
+			rc(0, 0, 0, 0);
+		}
+		function downMouseRelease() {
+			rc(0, 0, 0, 0);
+		}
+		function leftMouseRelease() {
+			rc(0, 0, 0, 0);
+		}
+		function plusMousePressDown () {
+			// console.log("plus pressed");
+			rc(0, 0, 100, 0);
+		}
+		function plusMouseRelease () {
+			// console.log("plus released");
+			rc(0, 0, 0, 0);
+		}
+		function minusMousePressDown () {
+			// console.log("minus pressed");
+			rc(0, 0, -100, 0);
+		}
+		function minusMouseRelease () {
+			// console.log("minus released");
+			rc(0, 0, 0, 0);
+		}
+		function crotMousePressDown () {
+			// console.log("plus pressed");
+			rc(0, 0, 0, 100);
+		}
+		function crotMouseRelease () {
+			// console.log("plus released");
+			rc(0, 0, 0, 0);
+		}
+		function acrotMousePressDown () {
+			// console.log("minus pressed");
+			rc(0, 0, 0, -100);
+		}
+		function acrotMouseRelease () {
+			// console.log("minus released");
+			rc(0, 0, 0, 0);
+		}
+
+		// plot graphs to diplay tello data==============================================================================
+		initialChart();
+		function initialChart() {
+			let initDataPoints = [];
+			for (let i=0; i < 100; i++){
+				initDataPoints.push({x:i, y:Math.random()})
+			}
+			console.log(initDataPoints);
+			var chart = new CanvasJS.Chart("chartContainer", { 
+				title: {
+					text: "Epic Chart"
+				},
+				data: [
+				{	markerColor: "#008000",
+					type: "spline",
+					dataPoints: initDataPoints
+				}
+				]
+			});
+			chart.render();	
+
+			document.getElementById("addDataPoint").onclick = function () {
+
+			var length = chart.options.data[0].dataPoints.length;
+			chart.options.title.text = "New DataPoint Added at the end";
+			chart.options.data[0].dataPoints.push({ x:chart.options.data[0].dataPoints[length-1].x + 1, y: 25 - Math.random() * 10});
+			chart.options.data[0].dataPoints.shift();
+			chart.render();
+
+			};
+
+			document.getElementById("updateDataPoint").onclick = function () {
+
+			var length = chart.options.data[0].dataPoints.length;
+			chart.options.title.text = "Last DataPoint Updated";
+			chart.options.data[0].dataPoints[length-1].y = 15 - Math.random() * 10;
+			chart.render();
+
+			};
+		}
+
+		function updateChart() {
+			console.log(`temp: ${telloState().temp}`);
+		}
+
+		//below is for testing: follow human face=============================================
+		const log = document.getElementById('values');
+		const MAXDIFF = 50;
+		const MINDIFF = MAXDIFF;
+		const lrMAXDIFF = 60;
+		const fbMAXDIFF = 10;
+		const faceRefPos = [video.width/2, video.height*(1.0/2.0-1.0/8.0)];
+		const faceRefSize = 60;
+		const faceRefOrien = 1;
+		function adjustTelloRC(){
+			if (faces.length > 0) {
+				let facePositon = faces[0].scaledMesh[5];
+				let faceSize = faces[0].scaledMesh[152][1] - faces[0].scaledMesh[10][1];
+				let faceOrientation = (faces[0].scaledMesh[372][0]-facePositon[0]) - (facePositon[0]-faces[0].scaledMesh[143][0]);
+
+				let lrspeed = Math.floor(facePositon[0] - faceRefPos[0]);
+				let udspeed = Math.floor(faceRefPos[1] - facePositon[1]);
+				let fbspeed = Math.floor(faceRefSize - faceSize);
+				let rotspeed = Math.floor(faceOrientation);
+
+				lrspeed = rangeLimiter(lrspeed, lrMAXDIFF, lrMAXDIFF, 20);
+				udspeed = rangeLimiter(udspeed, MINDIFF, MAXDIFF, 30);
+				fbspeed = rangeLimiter(fbspeed, fbMAXDIFF, fbMAXDIFF, 20);
+				rotspeed = rangeLimiter(rotspeed, MINDIFF, MAXDIFF, 20);
+				rc(lrspeed, fbspeed, udspeed, rotspeed);
+				// rc(lrspeed,0,0,0);
+				// rc(0, 0, udspeed, 0);
+				let logtext = document.getElementById("log_debug");
+				logtext.innerHTML = `facePositon.x: ${facePositon[0]} <br>facePositon.y: ${facePositon[1]} <br>faceSize: ${faceSize} <br>faceOrientation: ${faceOrientation} <br>`;
+				logtext.innerHTML += `leftright: ${lrspeed} <br>updown: ${udspeed} <br>forback: ${fbspeed} <br>yaw: ${rotspeed} <br>`;
+				
+			} else {
+				rc(0,0,0,0);
+				logtext.innerHTML = `facePositon.x: NA <br>facePositon.y: NA <br>faceSize: NA <br>faceOrientation: NA <br>`;
+				logtext.innerHTML += `leftright: NA <br>updown: NA <br>forback: NA <br>yaw: NA <br>`;
+			}
+		}
+
+		function rangeLimiter (value, innerBound, outerBound, percent) {
+			if (value >= 0) {
+				if (value > outerBound) {
+					return percent;
+				} else if (value < innerBound) {
+					return 0;
+				}
+			} else {
+				if (value > -innerBound) {
+					return 0;
+				} else if (value < -outerBound) {
+					return -percent;
+				}
+			}
+			return value;
+		}
+		async function followFaceJourney() {
+			telloconnect();
+			send("speed 10");
+			takeoff();
+			streamon();
+			await sleep(7000);
+			send("up 50");
+			rc(0,0,0,0);
+			startFollowFace();
+		}
+		
+		var adjRCLoop = null;
+		function startFollowFace() {
+			adjRCLoop = setInterval(adjustTelloRC, 100);
+		}
+
+		function stopFollowFace() {
+			if (adjRCLoop) {
+				console.log(adjRCLoop)
+				clearInterval(adjRCLoop);
+				adjRCLoop = null;
+			};
+			rc(0,0,0,0);
+
+		}
+
+
+	</script>
+</body>
+</html>
