@@ -15,6 +15,7 @@
 	<div class="video">
 		<video id="video_raw"autoplay muted playsinline></video>
 		<canvas id="canvas_lab"></canvas>
+		<canvas id="tello-canvas"></canvas>
 	</div>
 	<div class="select">
 		<label for="audioSource">Audio source: </label><select id="audioSource"></select>
@@ -57,24 +58,23 @@
 		<button onclick="tellosend()">Send</button>
 		<button onclick="telloconnect()">Connect</button>
 		<p></p>
-		<button onclick="streamon()">Streamon</button>
+		<button onclick="displayStreamVideo()">Display</button>
 		<button onclick="emergency()">Emergency</button>
 		<button onclick="takeoff()">Take off</button>
 		<button onclick="land()">Land</button>
-		<button onclick="printTelloState()">State</button>
+		<button onclick="updateTelloStateLoop()">State</button>
 		<p></p>
-		<button onclick="followFaceJourney()">Lazy Button</button>
+		<button onclick="feedtellocanvastoml5()">Lazy Button</button>
 		<button onclick="startFollowFace()">Start Follow</button>
 		<button onclick="stopFollowFace()">Stop Follow</button>
 
 		<p id="log_debug"><br></p>
 	</div>
 	<p></p>
-	<div id="chartContainer" style="height: 280px; max-width: 920px; margin: 0px auto;"></div>  
-	<button id="addDataPoint">Add Data Point</button>  
-	<button id="updateDataPoint">Update Data Point</button>  
+	<div id="chartContainer" style="height: 360px; max-width: 720px; margin: 0px auto;"></div>  
 	<script type="text/javascript" src="./lib/canvasjs.min.js"></script> 
 	<script type="text/javascript" src="./lib/ml5.min.js"></script>
+	<script type="text/javascript" src="./lib/jsmpeg.min.js"></script>
 	<script type="text/javascript" src="/socket.io/socket.io.js"></script>
 	<script type="text/javascript" src="./padEffect.js"></script>  
 	<script type="text/javascript" src="./chooseCamera.js"></script>
@@ -82,10 +82,14 @@
 
 	<script>
 
+		const startTime = Date.now() // in millisecond
+
 		// To display camera stream, apply ml5 model, display model labels on canvas======================================
 		const video = document.getElementById("video_raw")
 		const canvas = document.getElementById("canvas_lab")
+		const telloCanvas = document.getElementById("tello-canvas")
 		const ctx = canvas.getContext("2d");
+		// const ctx = telloCanvas.getContext("2d");
 		
 		video.height = 360;
 		video.width = 480;
@@ -93,18 +97,40 @@
 		// video.width = 640;
 		canvas.height = video.height;
 		canvas.width = video.width;
-
+		telloCanvas.height = video.height;
+		telloCanvas.width = video.width;
+		// telloCanvas.getContext("2d").fillRect(0, 0, telloCanvas.width, telloCanvas.height);
 		let faces = [];
 		let poses = [];
 
 		video.addEventListener('loadeddata', (event) => {
-			feedML5Model();
+			feedML5Model(video);
 		});
 
-		updateCanvas();
+		// telloCanvas.addEventListener('click', (event) => {
+		// 	console.log("clicked")
+		// 	console.log("canvas loaded")
+		// 	feedML5Model(telloCanvas);
+		// });
 
-		function feedML5Model() {
-			const facemesh = ml5.facemesh(video, function() {
+		function feedtellocanvastoml5 () {
+			console.log(telloCanvas);
+			feedML5Model(telloCanvas);
+		}
+
+		updateCanvas();
+		function feedML5Model(frameInput) {
+			// const facemesh = ml5.facemesh(function () {
+			// 	setInterval(() => {
+			// 		facemesh.predict(frameInput, facefaces => {
+			// 			faces = facefaces;
+			// 		});
+			// 	},1000.0/30.0)
+			// });
+
+
+
+			const facemesh = ml5.facemesh(frame, function() {
 				console.log("Model loaded!")
 			});
 
@@ -135,7 +161,8 @@
 		function updateCanvas () {
 			if (video && (!video.paused || !video.ended || video.autoplay)) {
 				ctx.clearRect(0, 0, canvas.width, canvas.height);
-				ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+				// ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+				// ctx.drawImage(telloCanvas, 0, 0, canvas.width, canvas.height);
 				// //draw poses
 				// drawPoseKeypoints(poses);
 				// //draw skeleton
@@ -213,17 +240,19 @@
 				}
         }
 
-		async function printTelloState() {
+
+		// functions for communicating tello=================================================
+		telloData = {};
+		async function updateTelloStateLoop() {
 			let statestate = document.getElementById("tello_state");
 			setInterval(() => {
 				telloState().then(response => {
-					statestate.innerHTML = `State: ${response} <br>`;
+					telloData = response;
+					statestate.innerHTML = `State: ${JSON.stringify(response)} <br>`;
 					});
         	}, 100);
 		}
 
-
-		// functions for communicating tello=================================================
 		function streamon() {
 			send("streamon");
 		}
@@ -246,109 +275,166 @@
 			send(`speed ${speedSlider.value}`);
 		}
 
+		function displayStreamVideo(){
+			streamVideo();
+			// const telloCanvas = document.getElementById("tello-canvas")
+			var url = 'ws://'+document.location.hostname+':3001/stream';
+			var player = new JSMpeg.Player(url, {canvas: telloCanvas});
+
+		}
 		// functions for game d-pad control=========================================
 		function upMousePressDown() {
-			rc(0, 100, 0, 0);
+			// rc(0, 100, 0, 0);
+			rc_fb(100);
 		}
 		function rightMousePressDown() {
-			rc(100, 0, 0, 0);
+			// rc(100, 0, 0, 0);
+			rc_lr(100);
 		}
 		function downMousePressDown() {
-			rc(0, -100, 0, 0);
+			// rc(0, -100, 0, 0);
+			rc_fb(-100);
 		}
 		function leftMousePressDown() {
-			rc(-100, 0, 0, 0);
+			// rc(-100, 0, 0, 0);
+			rc_lr(-100);
 		}
 		function upMouseRelease() {
-			rc(0, 0, 0, 0);
+			// rc(0, 0, 0, 0);
+			rc_fb(0);
 		}
 		function rightMouseRelease() {
-			rc(0, 0, 0, 0);
+			// rc(0, 0, 0, 0);
+			rc_lr(0);
 		}
 		function downMouseRelease() {
-			rc(0, 0, 0, 0);
+			// rc(0, 0, 0, 0);
+			rc_fb(0);
 		}
 		function leftMouseRelease() {
-			rc(0, 0, 0, 0);
+			// rc(0, 0, 0, 0);
+			rc_lr(0);
 		}
 		function plusMousePressDown () {
 			// console.log("plus pressed");
-			rc(0, 0, 100, 0);
+			// rc(0, 0, 100, 0);
+			rc_ud(100);
 		}
 		function plusMouseRelease () {
 			// console.log("plus released");
-			rc(0, 0, 0, 0);
+			// rc(0, 0, 0, 0);
+			rc_ud(0);
 		}
 		function minusMousePressDown () {
 			// console.log("minus pressed");
-			rc(0, 0, -100, 0);
+			// rc(0, 0, -100, 0);
+			rc_ud(-100);
 		}
 		function minusMouseRelease () {
 			// console.log("minus released");
-			rc(0, 0, 0, 0);
+			// rc(0, 0, 0, 0);
+			rc_ud(0);
 		}
 		function crotMousePressDown () {
 			// console.log("plus pressed");
-			rc(0, 0, 0, 100);
+			// rc(0, 0, 0, 100);
+			rc_yaw(100);
 		}
 		function crotMouseRelease () {
 			// console.log("plus released");
-			rc(0, 0, 0, 0);
+			// rc(0, 0, 0, 0);
+			rc_yaw(0);
 		}
 		function acrotMousePressDown () {
 			// console.log("minus pressed");
-			rc(0, 0, 0, -100);
+			// rc(0, 0, 0, -100);
+			rc_yaw(-100);
 		}
 		function acrotMouseRelease () {
 			// console.log("minus released");
-			rc(0, 0, 0, 0);
+			// rc(0, 0, 0, 0);
+			rc_yaw(0);
 		}
 
 		// plot graphs to diplay tello data==============================================================================
-		initialChart();
-		function initialChart() {
-			let initDataPoints = [];
-			for (let i=0; i < 100; i++){
-				initDataPoints.push({x:i, y:Math.random()})
-			}
-			console.log(initDataPoints);
-			var chart = new CanvasJS.Chart("chartContainer", { 
+		var chart = null;
+		initialChart("Tello Temperature (Landed)");
+		updateChartLoop_temp();
+		function initialChart(title) {
+			let initDataPoints1 = [];
+			let initDataPoints2 = [];
+
+			// for (let i=0; i < 450; i++){
+			// 	initDataPoints1.push({x:i/1000.0, y:Math.random()})
+			// }
+			// for (let i=0; i < 450; i++){
+			// 	initDataPoints2.push({x:i/1000.0, y:Math.random()})
+			// }
+			// console.log(initDataPoints);
+			chart = new CanvasJS.Chart("chartContainer", { 
+				animationEnabled: true,
+				theme: "light2",
 				title: {
-					text: "Epic Chart"
+					text: title
+				},
+				axisX:{
+					title: "Time (s)",
+				},
+				axisY: {
+					title: "Inner Temperature ( C)",
+					includeZero: false,
+					crosshair: {
+						enabled: true
+					}
 				},
 				data: [
-				{	markerColor: "#008000",
-					type: "spline",
-					dataPoints: initDataPoints
+				{	type: "spline",
+					showInLegend: true,
+					name: "High",
+					markerType: "square",
+					color: "#F08080",
+					dataPoints: initDataPoints1
+				},
+				{	type: "spline",
+					showInLegend: true,
+					name: "Low",
+					markerType: "circle",
+					color: "#42F2CF",
+					dataPoints: initDataPoints2
 				}
 				]
 			});
 			chart.render();	
-
-			document.getElementById("addDataPoint").onclick = function () {
-
-			var length = chart.options.data[0].dataPoints.length;
-			chart.options.title.text = "New DataPoint Added at the end";
-			chart.options.data[0].dataPoints.push({ x:chart.options.data[0].dataPoints[length-1].x + 1, y: 25 - Math.random() * 10});
-			chart.options.data[0].dataPoints.shift();
-			chart.render();
-
-			};
-
-			document.getElementById("updateDataPoint").onclick = function () {
-
-			var length = chart.options.data[0].dataPoints.length;
-			chart.options.title.text = "Last DataPoint Updated";
-			chart.options.data[0].dataPoints[length-1].y = 15 - Math.random() * 10;
-			chart.render();
-
-			};
 		}
 
-		function updateChart() {
-			console.log(`temp: ${telloState().temp}`);
+		function updateChart(x, y, graphIndex) {
+			// var length = chart.options.data[0].dataPoints.length;
+			// chart.options.data[0].dataPoints.push({ x:chart.options.data[0].dataPoints[length-1].x + 1, y: 25 - Math.random() * 10});
+			chart.options.data[graphIndex].dataPoints.push({x:x, y:y});
+			if (chart.options.data[graphIndex].dataPoints.length > 450) {
+				chart.options.data[graphIndex].dataPoints.shift();
+			}
+			chart.render();
 		}
 
+		function updateChartSingle(y, graphIndex) {
+			var length = chart.options.data[graphIndex].dataPoints.length;
+			chart.options.data[graphIndex].dataPoints.push({ x:chart.options.data[0].dataPoints[length-1].x + 1, y: y});
+			chart.options.data[graphIndex].dataPoints.shift();
+			chart.render();
+		}
+
+		function updateChartLoop_temp () {
+			// update temperature chart constantly
+			setInterval(() => {
+				if (telloData.temph) {
+					updateChart((Date.now() - startTime) / 1000.0, parseInt(telloData.temph), 0);
+					updateChart((Date.now() - startTime) / 1000.0, parseInt(telloData.templ), 1);
+					// console.log(chart.options.data[0].dataPoints);
+				}
+        	}, 1000);
+
+		}
 		//below is for testing: follow human face=============================================
 		const log = document.getElementById('values');
 		const MAXDIFF = 50;

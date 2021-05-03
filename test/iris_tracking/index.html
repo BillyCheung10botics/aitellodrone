@@ -1,0 +1,105 @@
+
+<!DOCTYPE html>
+<html lang=en>
+<head>
+<title>Examples of using the ondrag Global Event Attribute</title>
+<meta content="width=device-width">
+
+</head>
+
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.6.0/dist/tf.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>  
+    
+    <video autoplay loop muted></video>
+    <canvas>   </canvas>
+    <!-- <video src="https://im4.ezgif.com/tmp/ezgif-4-07895c651770.gif" autoplay loop></video> -->
+    
+    <script>
+        const video = document.querySelector("video");
+        // video.srcObject = null;
+        video.height = 360;
+        video.width = 480;
+        // video.crossOrigin = "anonymous";
+        // video.preload = "auto"
+        // video.src = "./eye_iris_tracking_sample_video_mediapipe.mp4";    
+        video.play();
+        const constraints = {
+          audio: false,
+          video: {
+                  height: {ideal: video.height},
+                  width: {ideal: video.width}
+                  }
+        };
+        let media = navigator.mediaDevices.getUserMedia(constraints)
+        media.then((stream) => {
+            video.srcObject = stream;
+        });
+        // video.play(); 
+
+        const canvas = document.querySelector("canvas");
+        canvas.height = video.height ;
+        canvas.width = video.width;
+        const ctx = canvas.getContext("2d");
+
+
+        video.addEventListener('loadeddata', (event) => {
+            fitFaceModel().then((model) => {
+                setInterval( function(){
+                    getFaces(model).then((faces) => {
+                        // console.log(faces);
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        drawKeypoints(faces);
+                    });
+                }, 30);
+            })
+		});
+
+        async function fitFaceModel() {
+            // Load the faceLandmarksDetection model assets.
+            const model = await faceLandmarksDetection.load(
+                faceLandmarksDetection.SupportedPackages.mediapipeFacemesh);
+            return model
+        }
+
+        async function getFaces(model) {
+            // Pass in a video stream to the model to obtain an array of detected faces from the MediaPipe graph.
+            // For Node users, the `estimateFaces` API also accepts a `tf.Tensor3D`, or an ImageData object.
+            const faces = await model.estimateFaces({ input: video });
+            return faces
+        }
+
+        const originalFacemeshNumber = 468;
+        // A function to draw ellipses over the detected keypoints
+        function drawKeypoints(predictions) {
+            for (let i = 0; i < predictions.length; i += 1) {
+                const keypoints = predictions[i].scaledMesh;
+
+                // Draw facial keypoints.
+                for (let j = originalFacemeshNumber; j < keypoints.length; j += 1) {
+                    const [x, y] = keypoints[j];
+                    // console.log("drawing points");
+                    // console.log(x);
+                    // console.log(y);
+                    ctx.beginPath();
+                    ctx.ellipse(x, y, 1, 1, 0, 0, 2 * Math.PI);
+                    ctx.fillStyle = `rgb(${(i-originalFacemeshNumber)/(keypoints.length-originalFacemeshNumber)*256},
+                                         ${256-(i-originalFacemeshNumber)/(keypoints.length-originalFacemeshNumber)*256},
+                                         200)`;
+                    
+                    ctx.fill();
+                    ctx.font = "10px Comic Sans MS";
+					ctx.fillStyle = "red";
+					ctx.textAlign = "center";
+					ctx.fillText(`${j}`, x, y);
+                }
+            }
+        }
+
+    </script>
+</body>
+</html>
+
+
+<!-- reference: https://blog.tensorflow.org/2020/11/iris-landmark-tracking-in-browser-with-MediaPipe-and-TensorFlowJS.html -->

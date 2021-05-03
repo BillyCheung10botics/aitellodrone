@@ -15,7 +15,7 @@ const RESPONSE_TIMEOUT = 7000;  // in milliseconds
 const COMMAND_DELAY = 100; // in milliseconds
 const RCCOMMAND_DELAY = 1;  // in milliseconds
 const CONNECT_RETRY = 5; // Max. number of trials to connect Tello
-
+const RCSENDINTERVAL = 20; // rc command loop interval in milliseconds
 function handleError(err) {
     if (err) {
       console.log('ERROR');
@@ -40,7 +40,6 @@ class TelloProcessor {
         this.data_response = {}; // store the response information
 
         this.tello_connected = false; // entered SDK mode??
-        this.connect_count = 0; // number of trial(s) entering SDK mode
         this.flying = false; // whether tello is flying?
         this.streamoned = false; // whether tello video streaming is turned on?
 
@@ -50,33 +49,51 @@ class TelloProcessor {
         this.yaw = 0 // rotating speed % of spin -100 to 100
 
         this.udpbuilt = false; // !!A Temporary Variable!! : whether server and client are established 
-        
-        if (!this.udpbuilt) {
-            this.client = dgram.createSocket('udp4'); // client to send command and receiver response
-            this.receiver_server = dgram.createSocket('udp4'); // server to receive state information
-            
-
-            this.udpbuilt = true;
-
-            // try to connect to tello
-            this.telloConnect();
-
-            // constantly sending rc command to tello
-            this.sendrcloopID = this.send_rc_control_loop(); // send rc command constantly
-        }
-        
+        this.sendrcloopID = null; // the ID of the rc command event loop
+        this.telloConnect();
     }
 
     telloConnect () {
+        if (this.udpbuilt) {
+            this.stop_send_rc_loop();
+            this.quene = []; // clear the command queue
+            this.client.close();
+            this.receiver_server.close();
+            this.client = null; // gg
+            this.receiver_server = null; // gg
+        }
+        this.client = dgram.createSocket('udp4'); // client to send command and receiver response
+        this.receiver_server = dgram.createSocket('udp4'); // server to receive state information
+        // try to connect to tello
         this.quene = []; // clear the command queue
         this.setupTelloControlClient();
         this.connectSDK(); // enter SDK mode
         this.setupTelloStateServer();
+
+        // constantly sending rc command to tello
+        this.sendrcloopID = this.send_rc_control_loop(); // send rc command constantly
+        this.udpbuilt = true;
+
+        // if (this.udpbuilt) {
+        //     this.connectSDK();
+        // } else {
+        //     this.client = dgram.createSocket('udp4'); // client to send command and receiver response
+        //     this.receiver_server = dgram.createSocket('udp4'); // server to receive state information
+        //     // try to connect to tello
+        //     this.quene = []; // clear the command queue
+        //     this.setupTelloControlClient();
+        //     this.connectSDK(); // enter SDK mode
+        //     this.setupTelloStateServer();
+    
+        //     // constantly sending rc command to tello
+        //     this.sendrcloopID = this.send_rc_control_loop(); // send rc command constantly
+        //     this.udpbuilt = true;
+        // }
     }
 
     setupTelloControlClient(){
         // setup tello client and handle responses
-        this.client.bind(CONTROL_PORT);
+
         this.client.on('message', (message, remote) => {
             const readableMessage = message.toString();
             
@@ -90,6 +107,13 @@ class TelloProcessor {
                 console.log("`🤖 Error: " + readableMessage);
             }
         });
+        this.client.bind({
+            address: STATE_IP,
+            port: CONTROL_PORT,
+            exclusive: true
+        });
+
+        // this.client.bind(CONTROL_PORT, STATE_IP);
     }
 
     setupTelloStateServer () {
@@ -110,38 +134,33 @@ class TelloProcessor {
         // it indicates connection success even the new connection does not.
 
         this.tello_connected = false;
+        this.data_response["command"] = null;
         // insert "command" to the front of the quene
+        // try to enter SDK mode
         if (this.executing) {
+            this.quene.splice(1, 0, "command"); // insert it at index 1
             this.quene.splice(1, 0, "command"); // insert it at index 1
         } else {
             this.quene.unshift("command") // insert it at index 0
+            this.quene.unshift("command") // insert it at index 0
         };
-
-        // try to enter SDK mode
-        this.connect_count += 1;
-        if (this.data_response["command"] === "ok"){
-            var thisthis = this; 
-            setTimeout( function () {
-                thisthis.data_response["command"] === null;
-            }, commandDelays["command"] * 5);
-            console.log(`Tello connected. (Trial ${this.connect_count})`);
-            this.connect_count = 0;
-            this.tello_connected = true;
-            return true
-        } else if (this.connect_count <= CONNECT_RETRY) {
-            console.log(`Error: Fail to connect Tello. (Trial ${this.connect_count})`);
-            var thisthis = this;
-            setTimeout( function () {
-                thisthis.connectSDK(); // try again
-            }, commandDelays["command"]);
-        } else {
-            // alert("Error: Fail to connect Tello. Please check the Tello wifi connection.");
-            console.log("Error: Fail to connect Tello. Please check the Tello wifi connection.");
-            this.quene = []; // clear the command queue 
-            this.connect_count = 0;
-            this.tello_connected = false;
-            return false
-        }
+        var thisthis = this;
+        setTimeout( function () {
+            if (thisthis.data_response["command"] === "ok"){
+                thisthis.tello_connected = true;
+                if (thisthis.sendrcloopID === null) {
+                    thisthis.sendrcloopID = thisthis.send_rc_control_loop(); // send rc command constantly
+                } 
+                console.log("Tello connected.");
+            } else {
+                // alert("Error: Fail to connect Tello. Please check the Tello wifi connection.");
+                console.log("Error: Fail to connect Tello. Please check the Tello wifi connection.");
+                thisthis.stop_send_rc_loop();
+                thisthis.quene = []; // clear the command queue 
+                thisthis.tello_connected = false;
+                return false
+            }
+        }, commandDelays["command"] * 5);
     }
 
     emergency () {
@@ -179,7 +198,6 @@ class TelloProcessor {
     }
 
     land () {
-
         // if (this.flying) {
         //     this.request("land");
 
@@ -214,6 +232,26 @@ class TelloProcessor {
         this.leftright = Math.floor(lr);
         this.forwback = Math.floor(fb);
         this.updown = Math.floor(ud);
+        this.yaw = Math.floor(yaw);
+    }
+
+    setRC_lr (lr) {
+        // set left right speed
+        this.leftright = Math.floor(lr);
+    }
+
+    setRC_fb (fb) {
+        // set forward backward speed
+        this.forwback = Math.floor(fb);
+    }
+    
+    setRC_ud (ud) {
+        // set up down speed
+        this.updown = Math.floor(ud);
+    }
+
+    setRC_yaw (yaw) {
+        // set rotation speed 
         this.yaw = Math.floor(yaw);
     }
 
@@ -300,16 +338,19 @@ class TelloProcessor {
         const setintID = setInterval(function () {
             // console.log(`rc ${thisthis.leftright} ${thisthis.forwback} ${thisthis.updown} ${thisthis.yaw}`)
             thisthis.request(`rc ${thisthis.leftright} ${thisthis.forwback} ${thisthis.updown} ${thisthis.yaw}`);
-        }, 20);
+        }, RCSENDINTERVAL);
         // console.log(setintID)
         return setintID;
         
     }
 
     stop_send_rc_loop () {
-        console.log("Stop sending rc command");
+        // console.log("Stop sending rc command");
         // console.log(this.sendrcloopID);
-        clearInterval(this.sendrcloopID);
+        if (this.sendrcloopID !== null) {
+            clearInterval(this.sendrcloopID);
+            this.sendrcloopID = null;
+        }
     }
     // If executing command is nothing and waiting queue has some element, send first command to Tello
     _inquire () {

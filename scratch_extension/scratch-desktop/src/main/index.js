@@ -324,16 +324,11 @@ ipcMain.once('tello-initialize', () => {
 });
 
 ipcMain.on('connect', () => {
-    telloProcessor.connect();
+    telloProcessor.telloConnect();
 });
 
 ipcMain.on('emergency', () => {
     telloProcessor.emergency();
-});
-
-ipcMain.on('rc', (ev, arglr, argfb, argud, argyaw) => {
-    console.log("rc from front");
-    telloProcessor.setRC(arglr, argfb, argud, argyaw);
 });
 
 ipcMain.on('send', (ev, arg) => {
@@ -345,3 +340,22 @@ ipcMain.on('state', ev => {
     ev.sender.send('state-reply', JSON.stringify(state));
 });
 
+ipcMain.on('rc', (ev, arglr, argfb, argud, argyaw) => {
+    telloProcessor.setRC(arglr, argfb, argud, argyaw);
+});
+
+ipcMain.on('rclr', (ev, value) => {
+    telloProcessor.setRC_lr(value);
+});
+
+ipcMain.on('rcfb', (ev, value) => {
+    telloProcessor.setRC_fb(value);
+});
+
+ipcMain.on('rcud', (ev, value) => {
+    telloProcessor.setRC_ud(value);
+});
+
+ipcMain.on('rcyaw', (ev, value) => {
+    telloProcessor.setRC_yaw(value);
+});
