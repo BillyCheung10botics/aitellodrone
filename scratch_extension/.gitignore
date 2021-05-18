@@ -40,3 +40,4 @@
 /scratch-desktop/src/main/*
 !/scratch-desktop/src/main/index.js
 !/scratch-desktop/src/main/TelloProcessor.js
+!/scratch-desktop/src/main/commandDelays.js

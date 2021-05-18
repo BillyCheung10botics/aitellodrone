@@ -9,7 +9,7 @@ import ElectronStorageHelper from '../common/ElectronStorageHelper';
 
 import styles from './app.css';
 
-import {TelloProcessor} from './telloProcessor_fe';
+import {TelloProcessor} from './telloProcessor';
 
 const defaultProjectId = 0;
 

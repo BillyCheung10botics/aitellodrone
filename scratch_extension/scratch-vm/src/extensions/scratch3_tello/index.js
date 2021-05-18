@@ -104,45 +104,15 @@ const message = {
         'ja': '負旋',
         'en': 'anticlockwise ↻'
     },
-    moveup: {
-        'ja': '上に [X]cm 上がる',
-        'ja-Hira': 'うえに [X] センチあがる',
-        'en': 'move up [X] cm'
+    move: {
+        'ja': '[DIR]に [VAL]cm 上がる',
+        'ja-Hira': '[DIR]に [VAL] センチあがる',
+        'en': 'move [DIR] [VAL] cm'
     },
-    movedown: {
-        'ja': '下に [X]cm 下がる',
-        'ja-Hira': 'したに [X] センチさがる',
-        'en': 'move down [X] cm'
-    },
-    moveleft: {
-        'ja': '左に [X]cm 動く',
-        'ja-Hira': 'ひだりに [X] センチうごく',
-        'en': 'move left [X] cm'
-    },
-    moveright: {
-        'ja': '右に [X]cm 動く',
-        'ja-Hira': 'みぎに [X] センチうごく',
-        'en': 'move right [X] cm'
-    },
-    moveforward: {
-        'ja': '前に [X]cm 進む',
-        'ja-Hira': 'まえに [X] センチすすむ',
-        'en': 'move forward [X] cm'
-    },
-    moveback: {
-        'ja': '後ろに [X]cm 下がる',
-        'ja-Hira': 'うしろに [X] センチさがる',
-        'en': 'move backward [X] cm'
-    },
-    cw: {
-        'ja': '[X] 度右に回る',
-        'ja-Hira': '[X] どみぎにまわる',
-        'en': 'rotate [X] degrees right'
-    },
-    ccw: {
-        'ja': '[X] 度左に回る',
-        'ja-Hira': '[X] どひだりにまわる',
-        'en': 'rotate [X] degrees left'
+    rotate: {
+        'ja': '[VAL] 度[DIR]に回る',
+        'ja-Hira': '[VAL] ど[DIR]にまわる',
+        'en': 'rotate [VAL] degrees [DIR]'
     },
     pitch: {
         'ja': 'ピッチ',
@@ -213,6 +183,10 @@ const message = {
         'ja': 'z方向の加速度',
         'ja-Hira': 'zほうこうのかそくど',
         'en': 'acceleration z'
+    },
+    temperature: {
+        'ja': '溫度',
+        'en': 'temperature'
     }
 
 };
@@ -224,6 +198,34 @@ const message = {
  */
 class Scratch3Tello {
 
+    get MOVE_DIRECTION_MENU () {
+        return [
+            {
+                text: message.right[this.locale],
+                value: 'r'
+            },
+            {
+                text: message.left[this.locale],
+                value: 'l'
+            },
+            {
+                text: message.forward[this.locale],
+                value: 'f'
+            },
+            {
+                text: message.backward[this.locale],
+                value: 'b'
+            },
+            {
+                text: message.up[this.locale],
+                value: 'u'
+            },
+            {
+                text: message.down[this.locale],
+                value: 'd'
+            },
+        ]
+    }
 
     get FLIP_DIRECTION_MENU () {
         return [
@@ -283,6 +285,19 @@ class Scratch3Tello {
         ]
     }
 
+    get ROTATE_DIRECTION_MENU () {
+        return [
+            {
+                text: message.clockwise[this.locale],
+                value: 'c'
+            },
+            {
+                text: message.anticlockwise[this.locale],
+                value: 'a'
+            }
+        ]
+    }
+    
     constructor (runtime) {
         /**
          * The runtime instantiating this block package.
@@ -309,16 +324,12 @@ class Scratch3Tello {
             menuIconURI: menuIconURI,
             blockIconURI: blockIconURI,
             blocks: [
+                // 'Basic Command',
                 {
                     opcode: 'connect',
                     text: message.connect[this.locale],
                     blockType: BlockType.COMMAND,
                     func: 'telloconnect'
-                },
-                {
-                    opcode: 'emergency',
-                    text: message.emergency[this.locale],
-                    blockType: BlockType.COMMAND,
                 },
                 {
                     opcode: 'takeoff',
@@ -330,7 +341,6 @@ class Scratch3Tello {
                     text: message.land[this.locale],
                     blockType: BlockType.COMMAND
                 },
-                '---',
                 {
                     opcode: 'stay',
                     text: message.stay[this.locale],
@@ -347,6 +357,18 @@ class Scratch3Tello {
                         }
                     }
                 },
+                {
+                    opcode: 'streamon',
+                    text: message.streamon[this.locale],
+                    blockType: BlockType.COMMAND,
+                },
+                {
+                    opcode: 'emergency',
+                    text: message.emergency[this.locale],
+                    blockType: BlockType.COMMAND,
+                },
+                // 'Flying',
+                '---',
 
                 // {
                 //     opcode: 'remotecontrol',
@@ -371,6 +393,38 @@ class Scratch3Tello {
                 //         }
                 //     }
                 // },
+                {
+                    opcode: 'move',
+                    text: message.move[this.locale],
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        DIR: {
+                            type: ArgumentType.STRING,
+                            menu: 'moveDirectionMenu', 
+                            defaultValue: "r"
+                        },
+                        VAL: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 50
+                        }
+                    }
+                },
+                {
+                    opcode: 'rotate',
+                    text: message.rotate[this.locale],
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        DIR: {
+                            type: ArgumentType.STRING,
+                            menu: 'rotateDirectionMenu', 
+                            defaultValue: "c"
+                        },
+                        VAL: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 90
+                        }
+                    }
+                },
                 {
                     opcode: 'driverc',
                     text: message.drive[this.locale],
@@ -398,99 +452,6 @@ class Scratch3Tello {
                             defaultValue: "r"
                         }
                     }
-                },
-                {
-                    opcode: 'up',
-                    text: message.moveup[this.locale],
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        X: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 50
-                        }
-                    }
-                },
-                {
-                    opcode: 'down',
-                    text: message.movedown[this.locale],
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        X: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 50
-                        }
-                    }
-                },
-                {
-                    opcode: 'left',
-                    text: message.moveleft[this.locale],
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        X: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 50
-                        }
-                    }
-                },
-                {
-                    opcode: 'right',
-                    text: message.moveright[this.locale],
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        X: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 50
-                        }
-                    }
-                },
-                {
-                    opcode: 'forward',
-                    text: message.moveforward[this.locale],
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        X: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 50
-                        }
-                    }
-                },
-                {
-                    opcode: 'back',
-                    text: message.moveback[this.locale],
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        X: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 50
-                        }
-                    }
-                },
-                {
-                    opcode: 'cw',
-                    text: message.cw[this.locale],
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        X: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 90
-                        }
-                    }
-                },
-                {
-                    opcode: 'ccw',
-                    text: message.ccw[this.locale],
-                    blockType: BlockType.COMMAND,
-                    arguments: {
-                        X: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 90
-                        }
-                    }
-                },
-                {
-                    opcode: 'streamon',
-                    text: message.streamon[this.locale],
-                    blockType: BlockType.COMMAND,
                 },
                 // '---',
                 // {
@@ -533,6 +494,8 @@ class Scratch3Tello {
                 //     text: message.height[this.locale],
                 //     blockType: BlockType.REPORTER
                 // },
+                // 'State',
+                '---',
                 {
                     opcode: 'bat',
                     text: message.bat[this.locale],
@@ -562,9 +525,18 @@ class Scratch3Tello {
                 //     opcode: 'agz',
                 //     text: message.agz[this.locale],
                 //     blockType: BlockType.REPORTER
-                // }
+                // },
+                {
+                    opcode: 'temperature',
+                    text: message.temperature[this.locale],
+                    blockType: BlockType.REPORTER
+                },
             ],
             menus: {
+                moveDirectionMenu: {
+                    acceptReporters: false,
+                    items: this.MOVE_DIRECTION_MENU
+                },
                 flipDirectionMenu: {
                     acceptReporters: false,
                     items: this.FLIP_DIRECTION_MENU
@@ -572,6 +544,10 @@ class Scratch3Tello {
                 driveDirectionMenu: {
                     acceptReporters: false,
                     items: this.DRIVE_DIRECTION_MENU
+                },
+                rotateDirectionMenu: {
+                    acceptReporters: false,
+                    items: this.ROTATE_DIRECTION_MENU
                 }
                 
             }
@@ -662,38 +638,58 @@ class Scratch3Tello {
         telloProcessor.send(`flip ${args.DIR}`);
     }
 
-    up (args) {
-        telloProcessor.send(`up ${Cast.toString(Math.floor(args.X))}`);
+    move (args) {
+        const direction = args.DIR;
+        const value = Math.floor(args.VAL);
+        if (value > 500) {
+            value = 500;
+        } else if (value < 20) {
+            value = 20;
+        }
+        switch (direction) {
+            case 'r':
+                telloProcessor.send(`right ${Cast.toString(value)}`);
+                break; 
+            case 'l':
+                telloProcessor.send(`left ${Cast.toString(value)}`);
+                break;
+            case 'f':
+                telloProcessor.send(`forward ${Cast.toString(value)}`);
+                break;  
+            case 'b':
+                telloProcessor.send(`back ${Cast.toString(value)}`);
+                break;  
+            case 'u':
+                telloProcessor.send(`up ${Cast.toString(value)}`);
+                break;  
+            case 'd':
+                telloProcessor.send(`down ${Cast.toString(value)}`);
+                break;  
+            default:
+                break; 
+        }
     }
 
-    down (args) {
-        telloProcessor.send(`down ${Cast.toString(Math.floor(args.X))}`);
+    rotate (args) {
+        const direction = args.DIR;
+        const value = Math.floor(args.VAL);
+        if (value > 360) {
+            value = 360;
+        } else if (value < 1) {
+            value = 1;
+        }
+        switch (direction) {
+            case 'c':
+                telloProcessor.send(`cw ${Cast.toString(value)}`);
+                break; 
+            case 'a':
+                telloProcessor.send(`ccw ${Cast.toString(value)}`);
+                break;
+            default:
+                break; 
+        }
     }
-
-    left (args) {
-        telloProcessor.send(`left ${Cast.toString(Math.floor(args.X))}`);
-    }
-
-    right (args) {
-        telloProcessor.send(`right ${Cast.toString(Math.floor(args.X))}`);
-    }
-
-    forward (args) {
-        telloProcessor.send(`forward ${Cast.toString(Math.floor(args.X))}`);
-    }
-
-    back (args) {
-        telloProcessor.send(`back ${Cast.toString(Math.floor(args.X))}`);
-    }
-
-    cw (args) {
-        telloProcessor.send(`cw ${Cast.toString(Math.floor(args.X))}`);
-    }
-
-    ccw (args) {
-        telloProcessor.send(`ccw ${Cast.toString(Math.floor(args.X))}`);
-    }
-
+    //--------------------------------------------------------------------------------------------
     pitch () {
         return this.state.pitch;
     }
@@ -748,6 +744,10 @@ class Scratch3Tello {
 
     agz () {
         return this.state.agz;
+    }
+
+    temperature () {
+        return this.state.templ
     }
 }
 module.exports = Scratch3Tello;
