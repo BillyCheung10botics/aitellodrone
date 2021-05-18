@@ -2,9 +2,9 @@ git clone --depth 1 https://github.com/LLK/scratch-vm.git
 git clone --depth 1 --branch scratch-desktop https://github.com/LLK/scratch-gui.git
 git clone --depth 1 --branch v3.10.4 https://github.com/LLK/scratch-desktop.git
 
-git clone https://github.com/kebhr/scratch3-tello
-cp -r scratch3-tello/. ./
-rm -rf scratch3-tello/
+git clone https://github.com/BillyCheung10botics/aitellodrone
+cp -r aitellodrone/scratch_extension/. ./
+rm -rf aitellodrone/
 
 cd scratch-gui
 git clone https://github.com/champierre/tm2scratch.git
