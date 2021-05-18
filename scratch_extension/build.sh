@@ -2,6 +2,8 @@ git clone --depth 1 https://github.com/LLK/scratch-vm.git
 git clone --depth 1 --branch scratch-desktop https://github.com/LLK/scratch-gui.git
 git clone --depth 1 --branch v3.10.4 https://github.com/LLK/scratch-desktop.git
 
+sh ./relink.sh
+
 git clone https://github.com/BillyCheung10botics/aitellodrone
 cp -r aitellodrone/scratch_extension/. ./
 rm -rf aitellodrone/
@@ -19,16 +21,4 @@ sh posenet2scratch/install.sh
 sh watsonstt2scratch/install.sh "https://token.10botics.com/WatsonToken.json"
 cd ../
 
-cd scratch-vm
-npm install
-npm link
-cd ../scratch-gui
-npm install
-npm link scratch-vm
-npm link
-cd ../scratch-desktop
-npm install
-npm link scratch-gui
-cd node_modules/scratch-gui
-npm link scratch-vm
-cd ../../../
+sh ./relink.sh
