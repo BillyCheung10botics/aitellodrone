@@ -12,7 +12,7 @@ This project is inspired by the following developers,
   ```bash
   $ node backend/telloBackend.js
   ```
-2. go the localhost http://localhost:3333/index.html
+2. go the localhost http://localhost:33333/index.html
 
 ## Scratch Desktop
 ### How to Build
