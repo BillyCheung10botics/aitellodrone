@@ -17,3 +17,15 @@ cd ../../../
 git clone https://github.com/kebhr/scratch3-tello
 cp -r scratch3-tello/. ./
 rm -rf scratch3-tello/
+
+cd scratch-gui
+git clone https://github.com/10botics/facemesh2scratch
+git clone https://github.com/champierre/tm2scratch.git
+git clone https://github.com/champierre/handpose2scratch
+git clone https://github.com/champierre/posenet2scratch.git
+git clone https://github.com/BillyCheung10botics/watsonstt2scratch.git
+./tm2scratch/install.sh
+./facemesh2scratch/install.sh
+./handpose2scratch/install.sh
+./posenet2scratch/install.sh
+./watsonstt2scratch/install.sh "https://token.10botics.com/WatsonToken.json"
