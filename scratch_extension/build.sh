@@ -8,7 +8,7 @@ rm -rf scratch3-tello/
 
 cd scratch-gui
 git clone https://github.com/champierre/tm2scratch.git
-git clone https://github.com/10botics/facemesh2scratch.git
+git clone https://github.com/BillyCheung10botics/facemesh2scratch.git
 git clone https://github.com/champierre/handpose2scratch.git
 git clone https://github.com/champierre/posenet2scratch.git
 git clone https://github.com/BillyCheung10botics/watsonstt2scratch.git
