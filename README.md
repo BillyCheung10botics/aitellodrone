@@ -54,3 +54,4 @@ to
         }
    ```
 2. Then please follow the steps of https://github.com/LLK/scratch-desktop
+3. For Mac, please also see https://github.com/sethlu/electron-distribution-guide/blob/master/MacAppStoreDeployment.md
