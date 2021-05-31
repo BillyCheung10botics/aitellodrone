@@ -34,7 +34,7 @@ The building method essentially follows that of https://github.com/kebhr/scratch
   $ npm start
   ```
 ### How to Make a packaged build
-1. Modify the file \scratch-desktop\scripts\fetchMediaLibraryAssets.js
+1. Modify the file \scratch-desktop\scripts\fetchMediaLibraryAssets.js, 
 from
   ```
         if (sprite.json.costumes) {
