@@ -5,6 +5,8 @@ This project is inspired by the following developers,
 1. https://github.com/wesbos/javascript-drones
 2. https://github.com/kebhr/scratch3-tello
 3. https://github.com/dbaldwin/tello-video-nodejs-websockets
+## Requirement
+Install node.js
 
 ## web UI
 ### How to Run
