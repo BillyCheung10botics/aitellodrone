@@ -34,4 +34,23 @@ The building method essentially follows that of https://github.com/kebhr/scratch
   $ npm start
   ```
 ### How to Make a packaged build
-Please follow the steps of https://github.com/LLK/scratch-desktop
+1. Modify the file \scratch-desktop\scripts\fetchMediaLibraryAssets.js
+from
+  ```
+        if (sprite.json.costumes) {
+            collectSimple(sprite.json.costumes, dest, `Costume for sprite ${sprite.name}`);
+        }
+        if (sprite.json.sounds) {
+            collectSimple(sprite.json.sounds, dest, `Sound for sprite ${sprite.name}`);
+        }
+  ```
+to
+  ```
+        if (sprite.costumes) {
+            collectSimple(sprite.costumes, dest, `Costume for sprite ${sprite.name}`);
+        }
+        if (sprite.sounds) {
+            collectSimple(sprite.sounds, dest, `Sound for sprite ${sprite.name}`);
+        }
+   ```
+2. Then please follow the steps of https://github.com/LLK/scratch-desktop
