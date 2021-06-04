@@ -359,3 +359,18 @@ ipcMain.on('rcud', (ev, value) => {
 ipcMain.on('rcyaw', (ev, value) => {
     telloProcessor.setRC_yaw(value);
 });
+
+// communication channels for advanced setting-------------------------
+
+ipcMain.on('response', ev => {
+    const response = telloProcessor.response();
+    ev.sender.send('response-reply', response);
+});
+
+ipcMain.on('setap', (ev, ssid, password) => {
+    telloProcessor.setStationMode(ssid, password);
+});
+
+ipcMain.on('setip', (ev, arg) => {
+    telloProcessor.setControlIP(arg);
+});

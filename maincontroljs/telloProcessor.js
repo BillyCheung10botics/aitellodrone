@@ -34,11 +34,14 @@ class TelloProcessor {
 
     // a Tello control class 
     initialize () {
+        this.control_ip = CONTROL_IP; // the ip of tello
+
         this.quene = []; // quene to store commands 
         this.executing = false; // whether tello is executing a command?
         this.data_state = {}; // store the state information
         this.data_response = {}; // store the response information
-
+        this.last_response = ""; // the latest response from tello
+        
         this.tello_connected = false; // entered SDK mode??
         this.flying = false; // whether tello is flying?
         this.streamoned = false; // whether tello video streaming is turned on?
@@ -68,27 +71,15 @@ class TelloProcessor {
         this.quene = []; // clear the command queue
         this.setupTelloControlClient();
         this.connectSDK(); // enter SDK mode
-        this.setupTelloStateServer();
+        if (this.control_ip === CONTROL_IP) {
+            this.setupTelloStateServer();
+        }
 
         // constantly sending rc command to tello
         this.sendrcloopID = this.send_rc_control_loop(); // send rc command constantly
         this.udpbuilt = true;
 
-        // if (this.udpbuilt) {
-        //     this.connectSDK();
-        // } else {
-        //     this.client = dgram.createSocket('udp4'); // client to send command and receiver response
-        //     this.receiver_server = dgram.createSocket('udp4'); // server to receive state information
-        //     // try to connect to tello
-        //     this.quene = []; // clear the command queue
-        //     this.setupTelloControlClient();
-        //     this.connectSDK(); // enter SDK mode
-        //     this.setupTelloStateServer();
-    
-        //     // constantly sending rc command to tello
-        //     this.sendrcloopID = this.send_rc_control_loop(); // send rc command constantly
-        //     this.udpbuilt = true;
-        // }
+
     }
 
     setupTelloControlClient(){
@@ -103,12 +94,13 @@ class TelloProcessor {
                 this.data_response[this.quene[0]] = readableMessage;
             } 
             else {
-                // print error message
-                console.log("`🤖 Error: " + readableMessage);
+                // print response message
+                console.log("`🤖 Response: " + readableMessage);
             }
+            this.last_response = readableMessage;
         });
         this.client.bind({
-            address: STATE_IP,
+            // address: STATE_IP,
             port: CONTROL_PORT,
             exclusive: true
         });
@@ -163,6 +155,22 @@ class TelloProcessor {
         }, commandDelays["command"] * 5);
     }
 
+    setStationMode(ssid, password){
+        // set the tello to station mode and 
+        // connect to a new access point 
+        // with the access point's ssid and password
+
+        // ssid : the ssid of the wifi (max. 16 characters otherwise error occurs)
+        // initialize all the variables
+        this._resetVariables();
+        this.request(`ap ${ssid} ${password}`);
+
+    }
+
+    setControlIP(control_ip) {
+        this.control_ip = control_ip
+    }
+
     emergency () {
         // for emergency only
         // stop motors immediately 
@@ -173,49 +181,11 @@ class TelloProcessor {
     }
 
     takeoff () {
-        // let waittime = 0;
-        // for (let i=0 ;i < this.quene.length; i++) {
-        //     waittime += commandDelays[this.quene[i]];
-        // }
-
-        // setTimeout(function(){
-        //     console.log(thisthis.data_response);
-
-        //     this.request("takeoff");
-
-        //     if (thisthis.data_response["takeoff"] === "ok") {
-        //         thisthis.flying = true
-        //     }                
-        // }, waittime);
-
-        // if (this.flying) {
-        //     console.log("Warning: Tello has already taken off. Please don't send 'takeoff' command again.");
-        // } else {
-        //     this.request("takeoff");
-        // };
         this.request("takeoff");
         this.flying = true;
     }
 
     land () {
-        // if (this.flying) {
-        //     this.request("land");
-
-        //     let waittime = 0;
-        //     for (let i=0 ;i < this.quene.length; i++) {
-        //         waittime += commandDelays[this.quene[i]];
-        //     }
-
-        //     var thisthis = this;
-        //     setTimeout(function(){
-        //         console.log(thisthis.data_response);
-        //         if (thisthis.data_response["land"] === "ok") {
-        //             thisthis.flying = false
-        //         }                
-        //     }, waittime);
-        // } else {
-        //     console.log("Warning: Tello has already landed. Please don't send 'land' command again.");
-        // };
         this.request("land");
         this.flying = false;
     }
@@ -323,7 +293,14 @@ class TelloProcessor {
         } else {
             return null;
         }
-        
+    }
+
+    response () {
+        if (this.last_response) {
+            return this.last_response;
+        } else {
+            return null;
+        }
     }
 
     request (cmd) {
@@ -386,7 +363,7 @@ class TelloProcessor {
 
     _send (cmd) {
         const msg = Buffer.from(cmd);
-        this.client.send(msg, 0, msg.length, CONTROL_PORT, CONTROL_IP, handleError);
+        this.client.send(msg, 0, msg.length, CONTROL_PORT, this.control_ip, handleError);
         // this.client.send(cmd, 0, cmd.length, CONTROL_PORT, CONTROL_IP, handleError);
     }
 
@@ -395,11 +372,12 @@ class TelloProcessor {
         this.executing = false; // whether tello is executing a command?
         this.data_state = {}; // store the state information
         this.data_response = {}; // store the response information
+        this.last_response = '';
 
         this.connect_count = 0; // number of trial(s) entering SDK mode
         this.flying = false; // whether tello is flying?
         this.streamoned = false; // whether tello video streaming is turned on?
     }
 }
-// export default TelloProcessor;
-module.exports = TelloProcessor;
+export default TelloProcessor;
+// module.exports = TelloProcessor;

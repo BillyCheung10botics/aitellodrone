@@ -187,7 +187,28 @@ const message = {
     temperature: {
         'ja': '溫度',
         'en': 'temperature'
-    }
+    },
+    sendcommand: {
+        'ja': 'send command [COMM]',
+        'ja-Hira': 'send command [COMM]',
+        'en': 'send command [COMM]'
+    },
+    recieveresponse: {
+        'ja': 'response',
+        'ja-Hira': 'response',
+        'en': 'response'
+    },
+    enterstationmode: {
+        'ja': 'connect hotspot SSID: [SSID] password: [PASS]',
+        'ja-Hira': 'connect hotspot SSID: [SSID] password: [PASS]',
+        'en': 'connect hotspot SSID: [SSID] password: [PASS]'
+    },
+    setconnectip: {
+        'ja': 'set connection ip: [IP]',
+        'ja-Hira': 'set connection ip: [IP]',
+        'en': 'set connection ip: [IP]'
+    },
+
 
 };
 
@@ -305,7 +326,9 @@ class Scratch3Tello {
          */
         this.runtime = runtime;
         this.state = {};
+        this.last_response = '';
         this.getState();
+        this.getResponse();
     }
 
     /**
@@ -531,6 +554,50 @@ class Scratch3Tello {
                     text: message.temperature[this.locale],
                     blockType: BlockType.REPORTER
                 },
+                '---',
+                // "Advanced setting"
+                {
+                    opcode: 'recieveResponse',
+                    text: message.recieveresponse[this.locale],
+                    blockType: BlockType.REPORTER
+                },
+                {
+                    opcode: 'sendCommand',
+                    text: message.sendcommand[this.locale],
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        COMM: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "battery?"
+                        }
+                    }
+                },
+                {
+                    opcode: 'enterStationMode',
+                    text: message.enterstationmode[this.locale],
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        SSID: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "wifiname"
+                        },
+                        PASS: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "password"
+                        }
+                    }
+                },
+                {
+                    opcode: 'setConnectIP',
+                    text: message.setconnectip[this.locale],
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        IP: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "192.168.10.1"
+                        }
+                    }
+                },
             ],
             menus: {
                 moveDirectionMenu: {
@@ -558,6 +625,14 @@ class Scratch3Tello {
         setInterval(() => {
             telloProcessor.state().then(response => {
                 this.state = JSON.parse(response);
+            });
+        }, 100);
+    }
+
+    getResponse () {
+        setInterval(() => {
+            telloProcessor.response().then(response => {
+                this.last_response = response;
             });
         }, 100);
     }
@@ -747,7 +822,28 @@ class Scratch3Tello {
     }
 
     temperature () {
-        return this.state.templ
+        return this.state.templ;
+    }
+    //--------------------------------------------------------------------------------------------
+    // advanced setting 
+    sendCommand (args) {
+        const command = args.COMM;
+        telloProcessor.send(command);
+    }
+
+    recieveResponse () {
+        return this.last_response;
+    }
+
+    enterStationMode (args) {
+        const ssid = args.SSID;
+        const pass = args.PASS;
+        telloProcessor.set_ap(ssid, pass);
+    }
+
+    setConnectIP (args) {
+        const ip = args.IP;
+        telloProcessor.set_ip(ip);
     }
 }
 module.exports = Scratch3Tello;

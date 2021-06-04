@@ -20,6 +20,7 @@ const commandDelays = {
   flip: 3000,
   speed: 3000,
   rc:1,
+  ap:3000,
   'battery?': 500,
   'speed?': 500,
   'time?': 500,

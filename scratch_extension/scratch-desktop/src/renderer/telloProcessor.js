@@ -52,4 +52,28 @@ export class TelloProcessor {
             });
         });
     }
+
+// communication channels for advanced setting-------------------------
+    async response () {
+        ipcRenderer.send('response');
+
+        const response = await this.responsePromise();
+        return response;
+    }
+
+    responsePromise () {
+        return new Promise(resolve => {
+            ipcRenderer.once('response-reply', (ev, arg) => {
+                resolve(arg);
+            });
+        });
+    }
+
+    set_ap (ssid, pass) {
+        ipcRenderer.send("setap", ssid, pass);
+    }
+
+    set_ip (address) {
+        ipcRenderer.send("setip", address);
+    }
 }
