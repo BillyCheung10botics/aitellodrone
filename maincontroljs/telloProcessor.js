@@ -65,8 +65,8 @@ class TelloProcessor {
             this.client = null; // gg
             this.receiver_server = null; // gg
         }
-        this.client = dgram.createSocket('udp4'); // client to send command and receiver response
-        this.receiver_server = dgram.createSocket('udp4'); // server to receive state information
+        this.client = dgram.createSocket({type:'udp4', reuseAddr:true}); // client to send command and receiver response
+        this.receiver_server = dgram.createSocket({type:'udp4', reuseAddr:true}); // server to receive state information
         // try to connect to tello
         this.quene = []; // clear the command queue
         this.setupTelloControlClient();
